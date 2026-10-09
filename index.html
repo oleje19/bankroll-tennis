@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101813">
+<title>Bankroll Tennis</title>
+<style>
+:root { color-scheme: light dark; --bg: light-dark(#f3f6f2,#101813); --panel: light-dark(#ffffff,#19231c); --panel2: light-dark(#edf2ec,#222e25); --text: light-dark(#17231a,#f1f6f0); --muted: light-dark(#637064,#a5b3a6); --border: light-dark(#dce5dc,#344438); --green: light-dark(#177b45,#5be08b); --green-bg: light-dark(#e2f6e8,#193d28); --red: light-dark(#b52f37,#ff7a7f); --blue: light-dark(#245bc4,#8ab3ff); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+#app { min-height: 100vh; background: var(--bg); border-radius: 0; padding: 20px 16px 40px; }
+main { max-width: 560px; margin: 0 auto; }
+header { display:flex; align-items:center; gap:12px; margin: 4px 0 22px; }
+.logo { width:46px;height:46px;display:grid;place-items:center;border-radius:15px;background:var(--green-bg);font-size:25px; }
+h1 { margin:0;font-size:21px;letter-spacing:-.5px; }
+.subtitle { margin-top:3px;color:var(--muted);font-size:12px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:18px; margin-bottom:14px; box-shadow:0 5px 20px #00000008; }
+.balance { background:linear-gradient(135deg, light-dark(#e5f7e9,#193d28), var(--panel)); }
+.eyebrow { color:var(--muted); font-size:11px; font-weight:750; letter-spacing:1.1px; text-transform:uppercase; }
+.big { font-size:36px; font-weight:800; letter-spacing:-1.4px; margin:7px 0 2px; }
+.balance-row { display:flex;justify-content:space-between;align-items:flex-end;gap:10px; }
+.pill { font-size:12px;font-weight:700;background:var(--green-bg);color:var(--green);padding:7px 10px;border-radius:999px;white-space:nowrap; }
+.small { color:var(--muted);font-size:12px;line-height:1.5; }
+h2 { font-size:16px; margin:0 0 15px; letter-spacing:-.2px; }
+.grid { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+label { display:block;font-size:12px;color:var(--muted);font-weight:650;margin:0 0 7px; }
+input { width:100%; min-width:0; border:1px solid var(--border); border-radius:13px; padding:14px 13px; font-size:18px; font-weight:700; background:var(--bg); color:var(--text); outline:none; }
+input:focus { border-color:var(--green); box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 17%,transparent); }
+.field { margin-bottom:13px; }
+.actions { display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0 10px; }
+button { border:0; border-radius:13px; padding:13px 10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; min-height:48px; }
+button:disabled { opacity:.45;cursor:not-allowed; }
+.secondary { background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+.primary { background:var(--green); color:#092414; width:100%;font-size:14px; }
+.voice.active { outline:2px solid var(--green); }
+.metrics { background:var(--panel2);border-radius:14px;padding:13px;display:grid;gap:11px; }
+.metric { display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px; }
+.metric strong { font-size:14px; }
+.green { color:var(--green); }
+.notice { margin-top:10px;font-size:12px;line-height:1.5;color:var(--muted);min-height:17px; }
+.history-head { display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px; }
+.history-head h2 { margin:0; }
+.count { color:var(--muted);font-size:12px; }
+.bet { border:1px solid var(--border);border-radius:15px;padding:13px;margin-top:9px; }
+.bet-top { display:flex;align-items:flex-start;justify-content:space-between;gap:10px; }
+.bet-title { font-weight:800;font-size:14px; }
+.status { font-size:10px;font-weight:800;border-radius:999px;padding:5px 8px;background:var(--panel2);color:var(--muted);white-space:nowrap; }
+.bet-sub { color:var(--muted);font-size:12px;margin-top:5px; }
+.bet-buttons { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px; }
+.win { background:var(--green-bg);color:var(--green); }
+.loss { background:color-mix(in srgb,var(--red) 12%,var(--panel));color:var(--red); }
+.refund { background:var(--panel2);color:var(--text); }
+.empty { text-align:center;color:var(--muted);font-size:13px;padding:20px 8px; }
+.settings { display:flex;gap:8px;align-items:center; }
+.settings input { font-size:15px;padding:10px;width:130px; }
+.settings button { min-height:42px;padding:9px 12px; }
+.utility-actions { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px; }
+.utility-actions button { font-size:12px; }
+.install-note { margin-top:10px;padding:12px;border-radius:12px;background:var(--panel2);font-size:12px;line-height:1.5;color:var(--muted); }
+footer { text-align:center;color:var(--muted);font-size:11px;line-height:1.6;padding:5px 12px; }
+@media (min-width:520px) { #app{padding-top:28px}.card{padding:21px}.big{font-size:40px} }
+</style>
+</head>
+<body>
+<div id="app">
+<main>
+<header><div class="logo">🎾</div><div><h1>Bankroll Tennis</h1><div class="subtitle">Le suivi de tes mises, en quelques secondes</div></div></header>
+<section class="card balance">
+  <div class="balance-row"><div><div class="eyebrow">Bankroll disponible</div><div class="big" id="balance">1 000,00 €</div><div class="small" id="balanceNote">Mises en cours déjà déduites</div></div><div class="pill" id="netPill">Départ : 1 000 €</div></div>
+</section>
+<section class="card">
+<h2>Enregistrer un pari</h2>
+<div class="field"><label for="stake">Mise (€)</label><input id="stake" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 20" /></div>
+<div class="field"><label for="odds">Cote décimale</label><input id="odds" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 2,20" /></div>
+<div class="actions"><button class="secondary voice" id="voiceBtn" type="button">🎙️ Dicter le pari</button><button class="secondary" id="manualBtn" type="button">⌨️ Saisie manuelle</button></div>
+<div class="small" id="voiceHelp">Dictée : appuie sur le bouton puis dis « mise 20 euros, cote 2 virgule 20 ». Si la dictée n'est pas disponible, utilise le micro de ton clavier.</div>
+<div class="metrics" style="margin-top:14px">
+<div class="metric"><span class="small">Bénéfice net potentiel</span><strong class="green" id="profit">—</strong></div>
+<div class="metric"><span class="small">Retour total si gagné</span><strong id="return">—</strong></div>
+<div class="metric"><span class="small">Bankroll après mise</span><strong id="after">—</strong></div>
+</div>
+<button class="primary" id="addBtn" style="margin-top:13px" type="button">＋ Enregistrer la mise</button>
+<div class="notice" id="notice" role="status" aria-live="polite"></div>
+</section>
+<section class="card">
+<div class="history-head"><h2>Historique des paris</h2><span class="count" id="count">0 pari</span></div>
+<div id="history"><div class="empty">Tes paris enregistrés apparaîtront ici.</div></div>
+</section>
+<section class="card">
+<h2>Bankroll de départ</h2>
+<div class="settings"><input id="starting" type="text" inputmode="decimal" aria-label="Bankroll de départ en euros" value="1000"/><button class="secondary" id="saveStarting" type="button">Modifier</button></div>
+<div class="small" style="margin-top:9px">Tes données restent dans le navigateur de cet appareil. Fais régulièrement une copie de sauvegarde : vider les données du navigateur peut effacer ton historique.</div>
+<div class="utility-actions"><button class="secondary" id="exportBtn" type="button">⬇️ Sauvegarder mes données</button><button class="secondary" id="importBtn" type="button">⬆️ Restaurer une sauvegarde</button></div>
+<input id="importFile" type="file" accept="application/json,.json" hidden />
+<div class="install-note" id="installNote">Pour ajouter cette page à l'écran d'accueil, elle devra d'abord être publiée sur une adresse web sécurisée. Dans Chrome sur Android, ouvre ensuite le menu ⋮ puis « Installer l'application » ou « Ajouter à l'écran d'accueil ».</div>
+</section>
+<footer>Outil personnel de suivi · Vérifie toujours les montants avant validation.<br>Un pari en attente est comptabilisé par sa mise déduite de la bankroll.</footer>
+</main>
+</div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const KEY = 'bankroll-tennis-v1';
+  const parse = value => {
+    const n = Number(String(value ?? '').trim().replace(/\s/g,'').replace(',', '.').replace(/[€]/g,''));
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const money = n => Number(n).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+  const fmt = n => Number(n).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let state = { starting:1000, balance:1000, bets:[] };
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved && Number.isFinite(saved.starting) && Number.isFinite(saved.balance) && Array.isArray(saved.bets)) state = saved;
+  } catch (_) {}
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { notice('Le navigateur ne permet pas de sauvegarder les données ici.'); } };
+  const notice = text => { $('notice').textContent = text; };
+  const values = () => ({ stake:parse($('stake').value), odds:parse($('odds').value) });
+  function renderCalc() {
+    const {stake,odds} = values();
+    const valid = Number.isFinite(stake) && stake > 0 && Number.isFinite(odds) && odds > 1;
+    $('profit').textContent = valid ? money(stake*(odds-1)) : '—';
+    $('return').textContent = valid ? money(stake*odds) : '—';
+    $('after').textContent = valid ? money(state.balance-stake) : '—';
+    $('after').style.color = valid && stake > state.balance ? 'var(--red)' : 'var(--text)';
+    $('addBtn').disabled = !valid || stake > state.balance;
+  }
+  function render() {
+    $('balance').textContent = money(state.balance);
+    const net = state.balance - state.starting;
+    $('netPill').textContent = (net >= 0 ? '+' : '−') + money(Math.abs(net)) + ' net';
+    $('netPill').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
+    $('netPill').style.background = net >= 0 ? 'var(--green-bg)' : 'color-mix(in srgb,var(--red) 12%,var(--panel))';
+    $('starting').value = fmt(state.starting);
+    $('count').textContent = state.bets.length + (state.bets.length > 1 ? ' paris' : ' pari');
+    const history = $('history'); history.innerHTML = '';
+    if (!state.bets.length) history.innerHTML = '<div class="empty">Tes paris enregistrés apparaîtront ici.</div>';
+    [...state.bets].sort((a,b)=>b.created-a.created).forEach(bet => {
+      const item = document.createElement('div'); item.className='bet';
+      const top = document.createElement('div'); top.className='bet-top';
+      const info = document.createElement('div');
+      const title = document.createElement('div'); title.className='bet-title'; title.textContent=money(bet.stake)+' · Cote '+String(bet.odds).replace('.',',');
+      const sub = document.createElement('div'); sub.className='bet-sub';
+      const date = new Date(bet.created).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      sub.textContent=date+' · '+(bet.status==='pending'?'Gain potentiel : '+money(bet.stake*(bet.odds-1)):bet.resultText);
+      info.append(title,sub); const status=document.createElement('span');status.className='status';status.textContent=bet.status==='pending'?'EN ATTENTE':bet.status==='won'?'GAGNÉ':bet.status==='lost'?'PERDU':'ANNULÉ';top.append(info,status);item.append(top);
+      if (bet.status==='pending') {
+        const buttons=document.createElement('div');buttons.className='bet-buttons';
+        const won=document.createElement('button');won.className='win';won.textContent='✓ Gagné';won.onclick=()=>settle(bet.id,'won');
+        const lost=document.createElement('button');lost.className='loss';lost.textContent='✕ Perdu';lost.onclick=()=>settle(bet.id,'lost');
+        const cancel=document.createElement('button');cancel.className='refund';cancel.textContent='↶ Annuler le pari';cancel.style.gridColumn='1 / -1';cancel.onclick=()=>settle(bet.id,'void');
+        buttons.append(won,lost,cancel);item.append(buttons);
+      }
+      history.append(item);
+    });
+    renderCalc();
+  }
+  function addBet() {
+    const {stake,odds}=values();
+    if (!(stake>0 && odds>1)) return notice('Entre une mise positive et une cote supérieure à 1.');
+    if (stake>state.balance) return notice('Ta mise dépasse la bankroll disponible.');
+    state.balance=Number((state.balance-stake).toFixed(2));
+    state.bets.push({id:(crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random())),stake,odds,status:'pending',created:Date.now()});
+    persist(); render(); $('stake').value='';$('odds').value='';$('stake').focus();notice('Pari enregistré : la mise a été déduite de ta bankroll.');
+  }
+  function settle(id,result) {
+    const bet=state.bets.find(b=>b.id===id); if(!bet || bet.status!=='pending') return;
+    if(result==='won') { state.balance=Number((state.balance+bet.stake*bet.odds).toFixed(2));bet.status='won';bet.resultText='Bénéfice net +'+money(bet.stake*(bet.odds-1)); }
+    if(result==='lost') { bet.status='lost';bet.resultText='Perte −'+money(bet.stake); }
+    if(result==='void') { state.balance=Number((state.balance+bet.stake).toFixed(2));bet.status='void';bet.resultText='Mise remboursée '+money(bet.stake); }
+    persist();render();notice(result==='won'?'Pari gagné : retour total ajouté à la bankroll.':result==='lost'?'Pari perdu : la mise reste déduite.':'Pari annulé : mise remboursée.');
+  }
+  $('stake').addEventListener('input',renderCalc);$('odds').addEventListener('input',renderCalc);
+  $('addBtn').addEventListener('click',addBet);
+  $('manualBtn').addEventListener('click',()=>{$('stake').focus();notice('Saisie manuelle activée : renseigne la mise et la cote.');});
+  ['stake','odds'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); if(id==='stake')$('odds').focus();else addBet();}}));
+  $('saveStarting').addEventListener('click',()=>{
+    const n=parse($('starting').value);
+    if(!(n>0)) return notice('Entre une bankroll de départ supérieure à zéro.');
+    if(state.bets.length && !confirm('Modifier la bankroll de départ recalculera le solde en conservant les paris et leurs résultats. Continuer ?')) return;
+    const delta=n-state.starting;state.starting=n;state.balance=Number((state.balance+delta).toFixed(2));persist();render();notice('Bankroll de départ mise à jour.');
+  });
+  $('exportBtn').addEventListener('click',()=>{
+    try {
+      const blob=new Blob([JSON.stringify({format:'bankroll-tennis-backup-v1',exportedAt:new Date().toISOString(),state},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='bankroll-tennis-sauvegarde-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);notice('Sauvegarde téléchargée. Garde ce fichier dans un endroit sûr.');
+    } catch (_) { notice('Impossible de créer la sauvegarde dans ce navigateur.'); }
+  });
+  $('importBtn').addEventListener('click',()=>$('importFile').click());
+  $('importFile').addEventListener('change',async e=>{
+    const file=e.target.files&&e.target.files[0];if(!file)return;
+    try {
+      const data=JSON.parse(await file.text());const incoming=data.state||data;
+      if(!Number.isFinite(incoming.starting)||incoming.starting<=0||!Number.isFinite(incoming.balance)||incoming.balance<0||!Array.isArray(incoming.bets))throw new Error('format');
+      const validBets=incoming.bets.every(b=>b&&typeof b.id==='string'&&Number.isFinite(b.stake)&&b.stake>0&&Number.isFinite(b.odds)&&b.odds>1&&['pending','won','lost','void'].includes(b.status)&&Number.isFinite(b.created));
+      if(!validBets)throw new Error('bets');
+      if(!confirm('Restaurer cette sauvegarde remplacera les données actuellement enregistrées sur cet appareil. Continuer ?'))return;
+      state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets};persist();render();notice('Sauvegarde restaurée avec succès.');
+    } catch (_) { notice('Fichier invalide ou incompatible. Choisis une sauvegarde Bankroll Tennis.'); }
+    finally { e.target.value=''; }
+  });
+  let recognition=null;
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const frenchNumber = text => {
+    const clean=text.toLowerCase().replace(/[€]/g,' euros ').replace(/\bvirgule\b/g,'.').replace(/\b(une|un)\b/g,'1').replace(/\bdeux\b/g,'2').replace(/\btrois\b/g,'3').replace(/\bquatre\b/g,'4').replace(/\bcinq\b/g,'5').replace(/\bsix\b/g,'6').replace(/\bsept\b/g,'7').replace(/\bhuit\b/g,'8').replace(/\bneuf\b/g,'9').replace(/\bdix\b/g,'10').replace(/\bonze\b/g,'11').replace(/\bdouze\b/g,'12').replace(/\btreize\b/g,'13').replace(/\bquatorze\b/g,'14').replace(/\bquinze\b/g,'15').replace(/\bseize\b/g,'16').replace(/\bvingt\b/g,'20').replace(/\btrente\b/g,'30').replace(/\bquarante\b/g,'40').replace(/\bcinquante\b/g,'50').replace(/\bsoixante\b/g,'60').replace(/\bcent\b/g,'100').replace(/(\d)\s*\.\s*(\d)/g,'$1.$2');
+    return clean.match(/\d+(?:[.,]\d+)?/g)||[];
+  };
+  $('voiceBtn').addEventListener('click',()=>{
+    if(!SpeechRecognition){notice('Dictée directe non disponible dans cet aperçu. Utilise le micro du clavier Android dans les champs Mise et Cote.');$('stake').focus();return;}
+    if(recognition){recognition.stop();return;}
+    recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.continuous=false;
+    $('voiceBtn').classList.add('active');$('voiceBtn').textContent='🔴 Écoute en cours…';notice('Dis par exemple : « mise 20 euros, cote 2 virgule 20 ».');
+    recognition.onresult=e=>{
+      const transcript=e.results[0][0].transcript.toLowerCase();
+      const nums=frenchNumber(transcript);
+      if(nums.length>=2){$('stake').value=nums[0].replace('.',',');$('odds').value=nums[1].replace(',','.');notice('Dictée reconnue : « '+transcript+' ». Vérifie impérativement la mise et la cote avant validation.');}
+      else {notice('Je n’ai pas reconnu la mise et la cote. Réessaie ou utilise la saisie manuelle. Texte entendu : '+transcript);}
+      renderCalc();
+    };
+    recognition.onerror=()=>notice('Dictée interrompue. Tu peux utiliser le micro de ton clavier.');
+    recognition.onend=()=>{recognition=null;$('voiceBtn').classList.remove('active');$('voiceBtn').textContent='🎙️ Dicter le pari';};
+    recognition.start();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
