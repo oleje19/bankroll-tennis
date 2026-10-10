@@ -94,6 +94,11 @@ footer { text-align:center;color:var(--muted);font-size:11px;line-height:1.6;pad
 <section class="card">
 <h2>Bankroll de départ</h2>
 <div class="settings"><input id="starting" type="text" inputmode="decimal" aria-label="Bankroll de départ en euros" value="1000"/><button class="secondary" id="saveStarting" type="button">Modifier</button></div>
+<h2 style="margin-top:20px">Gestion de la journée</h2>
+<div class="field"><label for="dayBankroll">Définir ma bankroll actuelle (€)</label><input id="dayBankroll" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 1 250,00" /></div>
+<button class="primary" id="setDayBankroll" type="button">Mettre à jour ma bankroll</button>
+<button class="secondary" id="clearToday" type="button" style="width:100%;margin-top:9px">Effacer les paris du jour</button>
+<div class="small" style="margin-top:9px">La mise à jour de bankroll conserve l’historique. Effacer les paris du jour supprime uniquement les paris enregistrés aujourd’hui et corrige le solde en conséquence.</div>
 <div class="small" style="margin-top:9px">Tes données restent dans le navigateur de cet appareil. Fais régulièrement une copie de sauvegarde : vider les données du navigateur peut effacer ton historique.</div>
 <div class="utility-actions"><button class="secondary" id="exportBtn" type="button">⬇️ Sauvegarder mes données</button><button class="secondary" id="importBtn" type="button">⬆️ Restaurer une sauvegarde</button></div>
 <input id="importFile" type="file" accept="application/json,.json" hidden />
@@ -186,6 +191,25 @@ footer { text-align:center;color:var(--muted);font-size:11px;line-height:1.6;pad
     if(!(n>0)) return notice('Entre une bankroll de départ supérieure à zéro.');
     if(state.bets.length && !confirm('Modifier la bankroll de départ recalculera le solde en conservant les paris et leurs résultats. Continuer ?')) return;
     const delta=n-state.starting;state.starting=n;state.balance=Number((state.balance+delta).toFixed(2));persist();render();notice('Bankroll de départ mise à jour.');
+  });
+  $('setDayBankroll').addEventListener('click',()=>{
+    const n=parse($('dayBankroll').value);
+    if(!Number.isFinite(n)||n<0) return notice('Entre un montant valide pour ta bankroll actuelle.');
+    if(!confirm('Remplacer la bankroll disponible par '+money(n)+' ? L’historique des paris sera conservé.')) return;
+    state.balance=Number(n.toFixed(2));persist();render();$('dayBankroll').value='';notice('Bankroll actuelle mise à jour.');
+  });
+  $('clearToday').addEventListener('click',()=>{
+    const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    const todayBets=state.bets.filter(b=>{const d=new Date(b.created);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')===today;});
+    if(!todayBets.length) return notice('Aucun pari enregistré aujourd’hui à effacer.');
+    if(!confirm('Supprimer les '+todayBets.length+' pari(s) enregistré(s) aujourd’hui ? Les paris des autres jours seront conservés et la bankroll sera recalculée.')) return;
+    for(const bet of todayBets){
+      if(bet.status==='pending') state.balance+=bet.stake;
+      else if(bet.status==='won') state.balance-=bet.stake*bet.odds;
+      else if(bet.status==='lost') state.balance+=bet.stake;
+      else if(bet.status==='void') state.balance-=bet.stake;
+    }
+    state.balance=Number(state.balance.toFixed(2));state.bets=state.bets.filter(b=>!todayBets.includes(b));persist();render();notice('Les paris du jour ont été supprimés.');
   });
   $('exportBtn').addEventListener('click',()=>{
     try {
