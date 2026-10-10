@@ -70,7 +70,6 @@ footer { text-align:center;color:var(--muted);font-size:11px;line-height:1.6;pad
   <div class="balance-row"><div><div class="eyebrow">Bankroll disponible</div><div class="big" id="balance">1 000,00 €</div><div class="small" id="balanceNote">Mises en cours déjà déduites</div></div><div class="pill" id="netPill">Départ : 1 000 €</div></div>
   <div class="metrics" style="margin-top:14px">
     <div class="metric"><span class="small">Bankroll si tous les paris en attente gagnent</span><strong class="green" id="projectedWin">1 000,00 €</strong></div>
-    <div class="metric"><span class="small">Bankroll si tous les paris en attente perdent</span><strong id="projectedLoss">1 000,00 €</strong></div>
   </div>
 </section>
 <section class="card">
@@ -135,7 +134,6 @@ footer { text-align:center;color:var(--muted);font-size:11px;line-height:1.6;pad
     $('balance').textContent = money(state.balance);
     const pending = state.bets.filter(b=>b.status==='pending');
     $('projectedWin').textContent = money(state.balance + pending.reduce((sum,b)=>sum+b.stake*b.odds,0));
-    $('projectedLoss').textContent = money(state.balance);
     const net = state.balance - state.starting;
     $('netPill').textContent = (net >= 0 ? '+' : '−') + money(Math.abs(net)) + ' net';
     $('netPill').style.color = net >= 0 ? 'var(--green)' : 'var(--red)';
