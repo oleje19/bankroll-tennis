@@ -209,7 +209,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     return {bets:bets.length,won,lost,pending,voided,totalStakes,profit,roi:totalStakes ? profit/totalStakes*100 : 0,winRate:won+lost ? won/(won+lost)*100 : 0};
   };
   const totalBetProfit = () => state.bets.reduce((n,b)=>n+betProfit(b),0);
-  const totalMovements = () => state.movements.reduce((n,m)=>n+(m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:m.delta||0),0);
+  const totalMovements = () => state.movements.reduce((n,m)=>n+(m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:0),0);
   function renderCalc() {
     const {stake,odds} = values();
     const valid = Number.isFinite(stake) && stake>0 && Number.isFinite(odds) && odds>1;
