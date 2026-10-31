@@ -291,7 +291,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('movementSummary').textContent='Total des apports : '+money(deposits)+' · Total des retraits : '+money(withdrawals);
     const host=$('movementHistory');host.innerHTML='';
     if(!state.movements.length){host.innerHTML='<div class="empty">Aucun apport ou retrait enregistré.</div>';return;}
-    [...state.movements].sort((a,b)=>b.created-a.created).forEach(m=>{
+    [...state.movements].filter(m=>m.type!=='other-result').sort((a,b)=>b.created-a.created).forEach(m=>{
       const row=document.createElement('div');row.className='movement';
       const left=document.createElement('div');const title=document.createElement('div');title.className='movement-title';
       title.textContent=m.type==='deposit'?'Apport':m.type==='withdraw'?'Retrait':m.type==='other-result'?'Résultat autres stratégies':'Ajustement manuel';
@@ -301,6 +301,21 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       const amount=document.createElement('div');amount.className='movement-amount '+((m.type==='deposit'||(m.type==='adjustment'&&m.delta>=0))?'amount-in':'amount-out');
       const signed=m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:m.delta;
       amount.textContent=(signed>=0?'+':'−')+money(Math.abs(signed));
+      row.append(left,amount);host.append(row);
+    });
+  }
+  function renderOtherResultHistory() {
+    const host=$('otherResultHistory');host.innerHTML='';
+    const results=state.movements.filter(m=>m.type==='other-result').sort((a,b)=>b.created-a.created);
+    if(!results.length){host.innerHTML='<div class="empty">Aucun résultat complémentaire enregistré.</div>';return;}
+    results.forEach(m=>{
+      const row=document.createElement('div');row.className='movement';
+      const left=document.createElement('div');
+      const title=document.createElement('div');title.className='movement-title';title.textContent='Résultat autres stratégies';
+      const sub=document.createElement('div');sub.className='movement-sub';sub.textContent=new Date(m.created).toLocaleString('fr-FR')+(m.note?' · '+m.note:'');
+      left.append(title,sub);
+      const amount=document.createElement('div');amount.className='movement-amount '+(m.delta>=0?'amount-in':'amount-out');
+      amount.textContent=(m.delta>=0?'+':'−')+money(Math.abs(m.delta));
       row.append(left,amount);host.append(row);
     });
   }
@@ -331,7 +346,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('netPill').style.color=betNet>=0?'var(--green)':'var(--red)';
     $('netPill').style.background=betNet>=0?'var(--green-bg)':'color-mix(in srgb,var(--red) 12%,var(--panel))';
     $('startingDisplay').textContent=money(state.starting);
-    renderHistory();renderStrategyStats();renderMovements();renderCalc();
+    renderHistory();renderStrategyStats();renderMovements();renderOtherResultHistory();renderCalc();
   }
   function addBet() {
     const {strategy,stake,odds}=values();
