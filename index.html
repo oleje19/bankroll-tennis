@@ -124,6 +124,14 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 </section>
 
 <section class="card">
+  <h2>Clôturer la journée</h2>
+  <div class="small">À utiliser le soir ou au moment de ton choix. Les statistiques de la période seront remises à zéro, mais la bankroll et tout l'historique seront conservés. Les paris encore en attente resteront archivés et pourront être réglés plus tard.</div>
+  <div class="notice" id="lastResetLabel" role="status" aria-live="polite">Aucun reset effectué.</div>
+  <button class="primary" id="closeDayBtn" type="button" style="margin-top:10px">↻ RESET DE LA JOURNÉE</button>
+  <div class="notice" id="closeDayNotice" role="status" aria-live="polite"></div>
+</section>
+
+<section class="card">
   <div class="history-head"><h2>Paris en attente</h2><span class="count" id="count">0 pari</span></div>
   <div id="history"><div class="empty">Aucun pari en attente.</div></div>
 </section>
@@ -198,7 +206,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   const money = n => Number(n || 0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
   const fmt = n => Number(n || 0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const makeId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()));
-  let state = {starting:500,balance:500,bets:[],movements:[],stakes:{s10:50,s5:25,s1:5,s2:10}};
+  let state = {starting:500,balance:500,bets:[],movements:[],stakes:{s10:50,s5:25,s1:5,s2:10},lastResetAt:null};
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Number.isFinite(saved.starting) && Number.isFinite(saved.balance) && Array.isArray(saved.bets)) {
@@ -215,7 +223,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   const pendingBets = () => state.bets.filter(b=>b.status==='pending');
   const betProfit = bet => bet.status==='won' ? bet.stake*(bet.odds-1) : bet.status==='lost' ? -bet.stake : 0;
   const statsFor = id => {
-    const bets = state.bets.filter(b=>b.strategy===id);
+    const bets = state.bets.filter(b=>b.strategy===id&&!b.archivedAt);
     const won = bets.filter(b=>b.status==='won').length;
     const lost = bets.filter(b=>b.status==='lost').length;
     const pending = bets.filter(b=>b.status==='pending').length;
@@ -225,9 +233,9 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     const profit = settled.reduce((n,b)=>n+betProfit(b),0);
     return {bets:bets.length,won,lost,pending,voided,totalStakes,profit,roi:totalStakes ? profit/totalStakes*100 : 0,winRate:won+lost ? won/(won+lost)*100 : 0};
   };
-  const totalBetProfit = () => state.bets.reduce((n,b)=>n+betProfit(b),0);
+  const totalBetProfit = () => state.bets.filter(b=>!b.archivedAt).reduce((n,b)=>n+betProfit(b),0);
   const totalMovements = () => state.movements.reduce((n,m)=>n+(m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:0),0);
-  const totalOtherResults = () => state.movements.reduce((n,m)=>n+(m.type==='other-result'?m.delta:0),0);
+  const totalOtherResults = () => state.movements.reduce((n,m)=>n+(m.type==='other-result'&&!m.archivedAt?m.delta:0),0);
   function renderCalc() {
     const {stake,odds} = values();
     const valid = Number.isFinite(stake) && stake>0 && Number.isFinite(odds) && odds>1;
@@ -268,7 +276,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     }
   }
   function renderHistory() {
-    const pending=state.bets.filter(b=>b.status==='pending');
+    const pending=state.bets.filter(b=>b.status==='pending'&&!b.archivedAt);
     $('count').textContent=pending.length+(pending.length>1?' paris':' pari');
     const history=$('history');history.innerHTML='';
     if(!pending.length){history.innerHTML='<div class="empty">Aucun pari en attente.</div>';return;}
@@ -291,7 +299,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     });
   }
   function renderArchive() {
-    const archived=state.bets.filter(b=>b.status!=='pending');
+    const archived=state.bets.filter(b=>b.status!=='pending'||b.archivedAt);
     $('archiveCount').textContent=archived.length+(archived.length>1?' paris':' pari');
     const host=$('archiveHistory');host.innerHTML='';
     if(!archived.length){host.innerHTML='<div class="empty">Aucun pari archivé.</div>';return;}
@@ -304,13 +312,22 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       const date=new Date(bet.created).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
       sub.textContent=strategyName(bet.strategy)+' · '+date+' · '+(bet.resultText||'Résultat enregistré');
       info.append(title,sub);
-      const status=document.createElement('span');status.className='status';status.textContent=bet.status==='won'?'GAGNÉ':bet.status==='lost'?'PERDU':'ANNULÉ';
+      const status=document.createElement('span');status.className='status';status.textContent=bet.status==='won'?'GAGNÉ':bet.status==='lost'?'PERDU':bet.status==='void'?'ANNULÉ':'EN ATTENTE';
       top.append(info,status);item.append(top);
       const buttons=document.createElement('div');buttons.className='bet-buttons';
-      [['won','✓ Corriger : gagné','win'],['lost','✕ Corriger : perdu','loss'],['void','↶ Corriger : annulé','refund'],['pending','Remettre en attente','secondary']].forEach(([result,label,cls])=>{
-        const btn=document.createElement('button');btn.className=cls;btn.textContent=label;
-        btn.onclick=()=>correctResult(bet.id,result);buttons.append(btn);
-      });
+      if(bet.status==='pending'){
+        [['won','✓ Gagné','win'],['lost','✕ Perdu','loss'],['void','↶ Annuler','refund']].forEach(([result,label,cls])=>{
+          const btn=document.createElement('button');btn.className=cls;btn.textContent=label;
+          btn.onclick=()=>settle(bet.id,result);buttons.append(btn);
+        });
+        const reactivate=document.createElement('button');reactivate.className='secondary';reactivate.textContent='Réintégrer aux paris en attente';reactivate.style.gridColumn='1 / -1';
+        reactivate.onclick=()=>{delete bet.archivedAt;persist();render();$('closeDayNotice').textContent='Pari réintégré dans les paris en attente.';};buttons.append(reactivate);
+      }else{
+        [['won','✓ Corriger : gagné','win'],['lost','✕ Corriger : perdu','loss'],['void','↶ Corriger : annulé','refund'],['pending','Remettre en attente','secondary']].forEach(([result,label,cls])=>{
+          const btn=document.createElement('button');btn.className=cls;btn.textContent=label;
+          btn.onclick=()=>correctResult(bet.id,result);buttons.append(btn);
+        });
+      }
       item.append(buttons);host.append(item);
     });
   }
@@ -337,7 +354,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       const left=document.createElement('div');const title=document.createElement('div');title.className='movement-title';
       title.textContent=m.type==='deposit'?'Apport':m.type==='withdraw'?'Retrait':m.type==='other-result'?'Résultat autres stratégies':'Ajustement manuel';
       const sub=document.createElement('div');sub.className='movement-sub';
-      sub.textContent=new Date(m.created).toLocaleString('fr-FR')+(m.note?' · '+m.note:'');
+      sub.textContent=new Date(m.created).toLocaleString('fr-FR')+(m.note?' · '+m.note:'')+(m.archivedAt?' · Période clôturée':'');
       left.append(title,sub);
       const amount=document.createElement('div');amount.className='movement-amount '+((m.type==='deposit'||(m.type==='adjustment'&&m.delta>=0))?'amount-in':'amount-out');
       const signed=m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:m.delta;
@@ -388,6 +405,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('netPill').style.background=betNet>=0?'var(--green-bg)':'color-mix(in srgb,var(--red) 12%,var(--panel))';
     $('startingDisplay').textContent=money(state.starting);
     renderHistory();renderArchive();renderStrategyStats();renderMovements();renderOtherResultHistory();renderCalc();
+    $('lastResetLabel').textContent=state.lastResetAt?'Dernier reset : '+new Date(state.lastResetAt).toLocaleString('fr-FR'):'Aucun reset effectué pour le moment.';
   }
   function addBet() {
     const {strategy,stake,odds}=values();
@@ -452,6 +470,24 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     if(!confirm('Ajuster le solde disponible de '+(delta>0?'+':'−')+money(Math.abs(delta))+' ? Cet ajustement sera historisé et ne modifiera pas les statistiques des paris.'))return;
     state.balance=Number(n.toFixed(2));state.movements.push({id:makeId(),type:'adjustment',delta,created:Date.now(),note:'Ajustement manuel du solde'});
     persist();render();$('dayBankroll').value='';notice('Ajustement enregistré séparément des paris.');
+  });
+  $('closeDayBtn').addEventListener('click',()=>{
+    const currentBets=state.bets.filter(b=>!b.archivedAt);
+    const currentOther=state.movements.filter(m=>m.type==='other-result'&&!m.archivedAt);
+    if(!currentBets.length&&!currentOther.length){
+      $('closeDayNotice').textContent='Rien à clôturer depuis le dernier reset.';
+      return;
+    }
+    const pendingCount=currentBets.filter(b=>b.status==='pending').length;
+    const settledCount=currentBets.length-pendingCount;
+    const closedAt=Date.now();
+    const message='Clôturer cette période ?\\n\\n'+currentBets.length+' pari(s) ('+pendingCount+' en attente, '+settledCount+' terminé(s)) et '+currentOther.length+' résultat(s) complémentaire(s) seront archivés.\\n\\nLes statistiques repartiront de zéro. La bankroll ne changera pas. Les paris en attente resteront réglables dans les archives.';
+    if(!confirm(message))return;
+    currentBets.forEach(b=>{b.archivedAt=closedAt;});
+    currentOther.forEach(m=>{m.archivedAt=closedAt;});
+    state.lastResetAt=closedAt;
+    persist();render();
+    $('closeDayNotice').textContent='Période clôturée. Historique conservé et bankroll inchangée.';
   });
   $('resetBets').addEventListener('click',()=>{
     const now=new Date();const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
