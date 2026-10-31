@@ -173,6 +173,16 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 </section>
 
 <section class="card">
+  <h2>Observations</h2>
+  <div class="small">Tes notes personnelles : remarques, idées ou informations à retenir.</div>
+  <div class="field" style="margin-top:12px;margin-bottom:0">
+    <label for="observations">Mes observations</label>
+    <textarea id="observations" rows="5" placeholder="Écris tes observations ici…" style="width:100%;min-height:120px;resize:vertical;border:1px solid var(--border);border-radius:13px;padding:13px;background:var(--bg);color:var(--text);font:inherit;font-size:14px;line-height:1.5"></textarea>
+  </div>
+  <div class="notice" id="observationsNotice" role="status" aria-live="polite">Enregistrement automatique sur cet appareil.</div>
+</section>
+
+<section class="card">
   <h2>Capital de départ et ajustement</h2>
   <div class="metric"><span class="small">Capital de départ enregistré</span><strong id="startingDisplay">500,00 €</strong></div>
   <div class="small" style="margin-top:8px">Pour augmenter ou diminuer ton capital, utilise les boutons « Apport » et « Retrait » ci-dessus. Ces mouvements ne modifient jamais les résultats ni le ROI des paris.</div>
@@ -206,7 +216,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   const money = n => Number(n || 0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
   const fmt = n => Number(n || 0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const makeId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()));
-  let state = {starting:500,balance:500,bets:[],movements:[],stakes:{s10:50,s5:25,s1:5,s2:10},lastResetAt:null};
+  let state = {starting:500,balance:500,bets:[],movements:[],stakes:{s10:50,s5:25,s1:5,s2:10},lastResetAt:null,observations:''};
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Number.isFinite(saved.starting) && Number.isFinite(saved.balance) && Array.isArray(saved.bets)) {
@@ -217,6 +227,12 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     }
   } catch (_) {}
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { notice('Le navigateur ne permet pas de sauvegarder les données ici.'); } };
+  $('observations').value = state.observations || '';
+  $('observations').addEventListener('input',()=>{
+    state.observations=$('observations').value;
+    persist();
+    $('observationsNotice').textContent='Observations enregistrées automatiquement.';
+  });
   const notice = text => { $('notice').textContent = text; };
   const strategyName = id => STRATEGIES.find(s=>s.id===id)?.name || (id==='legacy'?'Ancien pari · non classé':'Stratégie inconnue');
   const values = () => ({strategy:$('strategy').value,stake:parse($('stake').value),odds:parse($('odds').value)});
