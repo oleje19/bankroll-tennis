@@ -86,7 +86,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 <body>
 <div id="app">
 <main>
-<header><div class="logo">🎾</div><div><h1>Bankroll Tennis</h1><div class="subtitle">Une bankroll réelle · 4 stratégies suivies séparément</div></div></header>
+<header><div class="logo">🎾</div><div><h1>Bankroll Tennis</h1><div class="subtitle">Une bankroll réelle · 2 stratégies suivies + résultats complémentaires</div></div></header>
 
 <section class="card balance">
   <div class="balance-row"><div><div class="eyebrow">Bankroll disponible</div><div class="big" id="balance">500,00 €</div><div class="small">Après déduction des mises en attente</div></div><div class="pill" id="netPill">Résultat paris : 0 €</div></div>
@@ -94,6 +94,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     <div class="metric"><span class="small">Capital total (disponible + mises engagées)</span><strong id="totalCapital">500,00 €</strong></div>
     <div class="metric"><span class="small">Mises actuellement engagées</span><strong id="pendingTotal">0,00 €</strong></div>
     <div class="metric"><span class="small">Bénéfice / perte nette des paris</span><strong id="betNet">0,00 €</strong></div>
+    <div class="metric"><span class="small">Résultats des autres stratégies</span><strong id="otherResults">0,00 €</strong></div>
     <div class="metric"><span class="small">Apports nets (apports − retraits)</span><strong id="netMovements">0,00 €</strong></div>
     <div class="metric"><span class="small">Capital si tous les paris en attente gagnent</span><strong class="green" id="projectedWin">500,00 €</strong></div>
   </div>
@@ -101,7 +102,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 
 <section class="card">
   <h2>Enregistrer un pari</h2>
-  <div class="field"><label for="strategy">Stratégie utilisée</label><select id="strategy"><option value="">Choisir une stratégie…</option><option value="s10">Stratégie 10 %</option><option value="s5">Stratégie 5 %</option><option value="s1">Stratégie 1 %</option><option value="s2">Stratégie 2 %</option></select></div>
+  <div class="field"><label for="strategy">Stratégie utilisée</label><select id="strategy"><option value="">Choisir une stratégie…</option><option value="s10">Stratégie 10 %</option><option value="s5">Stratégie 5 %</option></select></div>
   <div class="field"><label for="stake">Mise (€) · préremplie selon la stratégie, modifiable pour ce pari</label><input id="stake" type="text" inputmode="decimal" autocomplete="off" placeholder="Choisis d'abord une stratégie" /></div>
   <div class="field"><label for="odds">Cote décimale</label><input id="odds" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 2,20" /></div>
   <div class="actions"><button class="secondary voice" id="voiceBtn" type="button">🎙️ Dicter le pari</button><button class="secondary" id="manualBtn" type="button">⌨️ Saisie manuelle</button></div>
@@ -117,7 +118,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 </section>
 
 <section class="card">
-  <div class="history-head"><h2>Performance des stratégies</h2><span class="count" id="strategyCount">4 stratégies</span></div>
+  <div class="history-head"><h2>Performance des stratégies</h2><span class="count" id="strategyCount">2 stratégies</span></div>
   <div class="strategy-list" id="strategyStats"></div>
   <div class="small" style="margin-top:10px">ROI = bénéfice/perte net(te) ÷ total des mises réglées. Les paris en attente et annulés sont exclus du ROI et du taux de réussite.</div>
 </section>
@@ -146,6 +147,17 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 </section>
 
 <section class="card">
+  <h2>Résultat des autres stratégies</h2>
+  <div class="small">Saisis uniquement le gain ou la perte net(te) réalisé(e) avec tes autres stratégies. Utilise un signe + pour un gain et − pour une perte. Le montant modifie directement la bankroll générale, sans toucher aux statistiques des stratégies 5 % et 10 %.</div>
+  <div class="field" style="margin-top:13px"><label for="otherResultAmount">Gain ou perte (€)</label><input id="otherResultAmount" type="text" inputmode="decimal" placeholder="Ex. +25 ou -12,50" /></div>
+  <div class="field"><label for="otherResultNote">Note (facultative)</label><input id="otherResultNote" type="text" placeholder="Ex. autres stratégies du jour" style="font-size:15px;font-weight:500" /></div>
+  <button class="primary" id="addOtherResult" type="button">Enregistrer ce résultat</button>
+  <div class="notice" id="otherResultNotice" role="status" aria-live="polite"></div>
+  <h2 style="margin-top:18px">Historique des résultats complémentaires</h2>
+  <div id="otherResultHistory"><div class="empty">Aucun résultat complémentaire enregistré.</div></div>
+</section>
+
+<section class="card">
   <h2>Capital de départ et ajustement</h2>
   <div class="metric"><span class="small">Capital de départ enregistré</span><strong id="startingDisplay">500,00 €</strong></div>
   <div class="small" style="margin-top:8px">Pour augmenter ou diminuer ton capital, utilise les boutons « Apport » et « Retrait » ci-dessus. Ces mouvements ne modifient jamais les résultats ni le ROI des paris.</div>
@@ -170,9 +182,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   const KEY = 'bankroll-tennis-v1';
   const STRATEGIES = [
     {id:'s10',name:'Stratégie 10 %',rate:'10 %'},
-    {id:'s5',name:'Stratégie 5 %',rate:'5 %'},
-    {id:'s1',name:'Stratégie 1 %',rate:'1 %'},
-    {id:'s2',name:'Stratégie 2 %',rate:'2 %'}
+    {id:'s5',name:'Stratégie 5 %',rate:'5 %'}
   ];
   const parse = value => {
     const n = Number(String(value ?? '').trim().replace(/\s/g,'').replace(',', '.').replace(/[€]/g,''));
@@ -188,7 +198,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       state = {...state,...saved};
       state.movements = Array.isArray(saved.movements) ? saved.movements : [];
       state.stakes = {...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((state.starting * parseFloat(s.rate)/100).toFixed(2))])),...(saved.stakes || {})};
-      state.bets = state.bets.map(b=>({...b,strategy:b.strategy || 'legacy'}));
+      state.bets = state.bets.map(b=>({...b,strategy:(!b.strategy || b.strategy==='s1' || b.strategy==='s2')?'legacy':b.strategy}));
     }
   } catch (_) {}
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { notice('Le navigateur ne permet pas de sauvegarder les données ici.'); } };
@@ -210,6 +220,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   };
   const totalBetProfit = () => state.bets.reduce((n,b)=>n+betProfit(b),0);
   const totalMovements = () => state.movements.reduce((n,m)=>n+(m.type==='deposit'?m.amount:m.type==='withdraw'?-m.amount:0),0);
+  const totalOtherResults = () => state.movements.reduce((n,m)=>n+(m.type==='other-result'?m.delta:0),0);
   function renderCalc() {
     const {stake,odds} = values();
     const valid = Number.isFinite(stake) && stake>0 && Number.isFinite(odds) && odds>1;
@@ -283,7 +294,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     [...state.movements].sort((a,b)=>b.created-a.created).forEach(m=>{
       const row=document.createElement('div');row.className='movement';
       const left=document.createElement('div');const title=document.createElement('div');title.className='movement-title';
-      title.textContent=m.type==='deposit'?'Apport':m.type==='withdraw'?'Retrait':'Ajustement manuel';
+      title.textContent=m.type==='deposit'?'Apport':m.type==='withdraw'?'Retrait':m.type==='other-result'?'Résultat autres stratégies':'Ajustement manuel';
       const sub=document.createElement('div');sub.className='movement-sub';
       sub.textContent=new Date(m.created).toLocaleString('fr-FR')+(m.note?' · '+m.note:'');
       left.append(title,sub);
@@ -313,6 +324,8 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('betNet').textContent=money(betNet);
     $('betNet').style.color=betNet>=0?'var(--green)':'var(--red)';
     $('netMovements').textContent=money(netMovements);
+    $('otherResults').textContent=money(totalOtherResults());
+    $('otherResults').style.color=totalOtherResults()>=0?'var(--green)':'var(--red)';
     $('projectedWin').textContent=money(state.balance+pending.reduce((n,b)=>n+b.stake*b.odds,0));
     $('netPill').textContent=(betNet>=0?'+':'−')+money(Math.abs(betNet))+' paris';
     $('netPill').style.color=betNet>=0?'var(--green)':'var(--red)';
@@ -335,6 +348,16 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     if(result==='lost'){bet.status='lost';bet.resultText='Perte −'+money(bet.stake);}
     if(result==='void'){state.balance=Number((state.balance+bet.stake).toFixed(2));bet.status='void';bet.resultText='Mise remboursée '+money(bet.stake);}
     persist();render();notice(result==='won'?'Pari gagné : retour total ajouté à la bankroll.':result==='lost'?'Pari perdu : la mise reste déduite.':'Pari annulé : mise remboursée.');
+  }
+  function addOtherResult() {
+    const raw=String($('otherResultAmount').value||'').trim().replace(/\s/g,'').replace(/[€]/g,'').replace(',','.');
+    const delta=Number(raw);
+    if(!raw || !Number.isFinite(delta) || delta===0)return $('otherResultNotice').textContent='Entre un montant différent de zéro, positif ou négatif.';
+    if(delta<0 && Math.abs(delta)>state.balance)return $('otherResultNotice').textContent='Cette perte dépasse la bankroll disponible.';
+    state.balance=Number((state.balance+delta).toFixed(2));
+    state.movements.push({id:makeId(),type:'other-result',delta:Number(delta.toFixed(2)),created:Date.now(),note:$('otherResultNote').value.trim()});
+    persist();render();$('otherResultAmount').value='';$('otherResultNote').value='';
+    $('otherResultNotice').textContent='Résultat enregistré et ajouté à la bankroll générale.';
   }
   function movement(type) {
     const amount=parse($('movementAmount').value);
@@ -359,8 +382,10 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   $('saveStakes').addEventListener('click',()=>{
     const next={};
     for(const s of STRATEGIES){const n=parse($('config-'+s.id).value);if(!(n>0))return $('stakeNotice').textContent='Chaque mise de stratégie doit être supérieure à zéro.';next[s.id]=Number(n.toFixed(2));}
-    state.stakes=next;persist();render();$('stakeNotice').textContent='Les quatre mises de référence ont été enregistrées.';
+    state.stakes=next;persist();render();$('stakeNotice').textContent='Les deux mises de référence ont été enregistrées.';
   });
+  $('addOtherResult').addEventListener('click',addOtherResult);
+  $('otherResultAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addOtherResult();}});
   $('depositBtn').addEventListener('click',()=>movement('deposit'));
   $('withdrawBtn').addEventListener('click',()=>movement('withdraw'));
   $('setDayBankroll').addEventListener('click',()=>{
@@ -403,7 +428,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       const validBets=incoming.bets.every(b=>b&&typeof b.id==='string'&&Number.isFinite(b.stake)&&b.stake>0&&Number.isFinite(b.odds)&&b.odds>1&&['pending','won','lost','void'].includes(b.status)&&Number.isFinite(b.created));
       if(!validBets)throw new Error('bets');
       if(!confirm('Restaurer cette sauvegarde remplacera les données actuellement enregistrées sur cet appareil. Continuer ?'))return;
-      state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets.map(b=>({...b,strategy:b.strategy||'legacy'})),movements:Array.isArray(incoming.movements)?incoming.movements:[],stakes:{...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((incoming.starting*parseFloat(s.rate)/100).toFixed(2))])),...(incoming.stakes||{})}};
+      state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets.map(b=>({...b,strategy:(!b.strategy||b.strategy==='s1'||b.strategy==='s2')?'legacy':b.strategy})),movements:Array.isArray(incoming.movements)?incoming.movements:[],stakes:{...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((incoming.starting*parseFloat(s.rate)/100).toFixed(2))])),...(incoming.stakes||{})}};
       persist();render();renderStakeSettings();notice('Sauvegarde restaurée avec succès.');
     }catch(_){notice('Fichier invalide ou incompatible. Choisis une sauvegarde Bankroll Tennis.');}
     finally{e.target.value='';}
