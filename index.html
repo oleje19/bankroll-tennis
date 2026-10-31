@@ -124,8 +124,15 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 </section>
 
 <section class="card">
-  <div class="history-head"><h2>Historique des paris</h2><span class="count" id="count">0 pari</span></div>
-  <div id="history"><div class="empty">Tes paris enregistrés apparaîtront ici.</div></div>
+  <div class="history-head"><h2>Paris en attente</h2><span class="count" id="count">0 pari</span></div>
+  <div id="history"><div class="empty">Aucun pari en attente.</div></div>
+</section>
+<section class="card">
+  <details id="archiveDetails">
+    <summary style="cursor:pointer;font-weight:800;display:flex;justify-content:space-between;gap:10px"><span>Archives des paris terminés</span><span class="count" id="archiveCount">0 pari</span></summary>
+    <div class="small" style="margin-top:10px">Les paris gagnés, perdus ou annulés sont rangés ici. Tu peux corriger leur résultat si nécessaire.</div>
+    <div id="archiveHistory" style="margin-top:10px"><div class="empty">Aucun pari archivé.</div></div>
+  </details>
 </section>
 
 <section class="card">
@@ -261,29 +268,63 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     }
   }
   function renderHistory() {
-    $('count').textContent=state.bets.length+(state.bets.length>1?' paris':' pari');
+    const pending=state.bets.filter(b=>b.status==='pending');
+    $('count').textContent=pending.length+(pending.length>1?' paris':' pari');
     const history=$('history');history.innerHTML='';
-    if(!state.bets.length){history.innerHTML='<div class="empty">Tes paris enregistrés apparaîtront ici.</div>';return;}
-    [...state.bets].sort((a,b)=>b.created-a.created).forEach(bet=>{
+    if(!pending.length){history.innerHTML='<div class="empty">Aucun pari en attente.</div>';return;}
+    [...pending].sort((a,b)=>b.created-a.created).forEach(bet=>{
       const item=document.createElement('div');item.className='bet';
       const top=document.createElement('div');top.className='bet-top';
       const info=document.createElement('div');
       const title=document.createElement('div');title.className='bet-title';title.textContent=money(bet.stake)+' · Cote '+String(bet.odds).replace('.',',');
       const sub=document.createElement('div');sub.className='bet-sub';
       const date=new Date(bet.created).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-      sub.textContent=strategyName(bet.strategy)+' · '+date+' · '+(bet.status==='pending'?'Gain net potentiel : '+money(bet.stake*(bet.odds-1)):bet.resultText||'Résultat enregistré');
+      sub.textContent=strategyName(bet.strategy)+' · '+date+' · Gain net potentiel : '+money(bet.stake*(bet.odds-1));
       info.append(title,sub);
-      const status=document.createElement('span');status.className='status';status.textContent=bet.status==='pending'?'EN ATTENTE':bet.status==='won'?'GAGNÉ':bet.status==='lost'?'PERDU':'ANNULÉ';
+      const status=document.createElement('span');status.className='status';status.textContent='EN ATTENTE';
       top.append(info,status);item.append(top);
-      if(bet.status==='pending'){
-        const buttons=document.createElement('div');buttons.className='bet-buttons';
-        const won=document.createElement('button');won.className='win';won.textContent='✓ Gagné';won.onclick=()=>settle(bet.id,'won');
-        const lost=document.createElement('button');lost.className='loss';lost.textContent='✕ Perdu';lost.onclick=()=>settle(bet.id,'lost');
-        const cancel=document.createElement('button');cancel.className='refund';cancel.textContent='↶ Annuler le pari';cancel.style.gridColumn='1 / -1';cancel.onclick=()=>settle(bet.id,'void');
-        buttons.append(won,lost,cancel);item.append(buttons);
-      }
-      history.append(item);
+      const buttons=document.createElement('div');buttons.className='bet-buttons';
+      const won=document.createElement('button');won.className='win';won.textContent='✓ Gagné';won.onclick=()=>settle(bet.id,'won');
+      const lost=document.createElement('button');lost.className='loss';lost.textContent='✕ Perdu';lost.onclick=()=>settle(bet.id,'lost');
+      const cancel=document.createElement('button');cancel.className='refund';cancel.textContent='↶ Annuler le pari';cancel.style.gridColumn='1 / -1';cancel.onclick=()=>settle(bet.id,'void');
+      buttons.append(won,lost,cancel);item.append(buttons);history.append(item);
     });
+  }
+  function renderArchive() {
+    const archived=state.bets.filter(b=>b.status!=='pending');
+    $('archiveCount').textContent=archived.length+(archived.length>1?' paris':' pari');
+    const host=$('archiveHistory');host.innerHTML='';
+    if(!archived.length){host.innerHTML='<div class="empty">Aucun pari archivé.</div>';return;}
+    [...archived].sort((a,b)=>b.created-a.created).forEach(bet=>{
+      const item=document.createElement('div');item.className='bet';
+      const top=document.createElement('div');top.className='bet-top';
+      const info=document.createElement('div');
+      const title=document.createElement('div');title.className='bet-title';title.textContent=money(bet.stake)+' · Cote '+String(bet.odds).replace('.',',');
+      const sub=document.createElement('div');sub.className='bet-sub';
+      const date=new Date(bet.created).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      sub.textContent=strategyName(bet.strategy)+' · '+date+' · '+(bet.resultText||'Résultat enregistré');
+      info.append(title,sub);
+      const status=document.createElement('span');status.className='status';status.textContent=bet.status==='won'?'GAGNÉ':bet.status==='lost'?'PERDU':'ANNULÉ';
+      top.append(info,status);item.append(top);
+      const buttons=document.createElement('div');buttons.className='bet-buttons';
+      [['won','✓ Corriger : gagné','win'],['lost','✕ Corriger : perdu','loss'],['void','↶ Corriger : annulé','refund'],['pending','Remettre en attente','secondary']].forEach(([result,label,cls])=>{
+        const btn=document.createElement('button');btn.className=cls;btn.textContent=label;
+        btn.onclick=()=>correctResult(bet.id,result);buttons.append(btn);
+      });
+      item.append(buttons);host.append(item);
+    });
+  }
+  function correctResult(id,newStatus) {
+    const bet=state.bets.find(b=>b.id===id);
+    if(!bet||bet.status===newStatus)return;
+    const credit=status=>status==='won'?bet.stake*bet.odds:status==='void'?bet.stake:status==='pending'?-bet.stake:0;
+    const delta=credit(newStatus)-credit(bet.status);
+    if(!confirm('Modifier le résultat de ce pari ? La bankroll sera ajustée de '+(delta>=0?'+':'−')+money(Math.abs(delta))+'.'))return;
+    state.balance=Number((state.balance+delta).toFixed(2));
+    bet.status=newStatus;
+    bet.resultText=newStatus==='won'?'Bénéfice net +'+money(bet.stake*(bet.odds-1)):newStatus==='lost'?'Perte −'+money(bet.stake):newStatus==='void'?'Mise remboursée '+money(bet.stake):'Remis en attente';
+    persist();render();
+    notice(newStatus==='pending'?'Pari remis en attente et mise de nouveau réservée.':'Résultat corrigé et bankroll ajustée.');
   }
   function renderMovements() {
     const deposits=state.movements.filter(m=>m.type==='deposit').reduce((n,m)=>n+m.amount,0);
@@ -346,7 +387,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('netPill').style.color=betNet>=0?'var(--green)':'var(--red)';
     $('netPill').style.background=betNet>=0?'var(--green-bg)':'color-mix(in srgb,var(--red) 12%,var(--panel))';
     $('startingDisplay').textContent=money(state.starting);
-    renderHistory();renderStrategyStats();renderMovements();renderOtherResultHistory();renderCalc();
+    renderHistory();renderArchive();renderStrategyStats();renderMovements();renderOtherResultHistory();renderCalc();
   }
   function addBet() {
     const {strategy,stake,odds}=values();
@@ -362,7 +403,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     if(result==='won'){state.balance=Number((state.balance+bet.stake*bet.odds).toFixed(2));bet.status='won';bet.resultText='Bénéfice net +'+money(bet.stake*(bet.odds-1));}
     if(result==='lost'){bet.status='lost';bet.resultText='Perte −'+money(bet.stake);}
     if(result==='void'){state.balance=Number((state.balance+bet.stake).toFixed(2));bet.status='void';bet.resultText='Mise remboursée '+money(bet.stake);}
-    persist();render();notice(result==='won'?'Pari gagné : retour total ajouté à la bankroll.':result==='lost'?'Pari perdu : la mise reste déduite.':'Pari annulé : mise remboursée.');
+    persist();render();notice(result==='won'?'Pari gagné : déplacé dans les archives.':result==='lost'?'Pari perdu : déplacé dans les archives.':'Pari annulé : mise remboursée et pari archivé.');
   }
   function addOtherResult() {
     const raw=String($('otherResultAmount').value||'').trim().replace(/\s/g,'').replace(/[€]/g,'').replace(',','.');
