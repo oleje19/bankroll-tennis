@@ -317,7 +317,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   function correctResult(id,newStatus) {
     const bet=state.bets.find(b=>b.id===id);
     if(!bet||bet.status===newStatus)return;
-    const credit=status=>status==='won'?bet.stake*bet.odds:status==='void'?bet.stake:status==='pending'?-bet.stake:0;
+    const credit=status=>status==='won'?bet.stake*(bet.odds-1):status==='lost'||status==='pending'?-bet.stake:0;
     const delta=credit(newStatus)-credit(bet.status);
     if(!confirm('Modifier le résultat de ce pari ? La bankroll sera ajustée de '+(delta>=0?'+':'−')+money(Math.abs(delta))+'.'))return;
     state.balance=Number((state.balance+delta).toFixed(2));
