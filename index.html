@@ -170,6 +170,8 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   <div class="notice" id="otherResultNotice" role="status" aria-live="polite"></div>
   <h2 style="margin-top:18px">Historique des résultats complémentaires</h2>
   <div id="otherResultHistory"><div class="empty">Aucun résultat complémentaire enregistré.</div></div>
+  <button class="secondary" id="clearOtherResults" type="button" style="width:100%;margin-top:10px">↻ Vider l'historique des autres stratégies</button>
+  <div class="notice" id="clearOtherResultsNotice" role="status" aria-live="polite"></div>
 </section>
 
 <section class="card">
@@ -475,6 +477,17 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     state.stakes=next;persist();render();$('stakeNotice').textContent='Les deux mises de référence ont été enregistrées.';
   });
   $('addOtherResult').addEventListener('click',addOtherResult);
+  $('clearOtherResults').addEventListener('click',()=>{
+    const count=state.movements.filter(m=>m.type==='other-result').length;
+    if(!count){
+      $('clearOtherResultsNotice').textContent='L’historique des autres stratégies est déjà vide.';
+      return;
+    }
+    if(!confirm('Supprimer définitivement les '+count+' résultat(s) de l’historique des autres stratégies ? La bankroll actuelle ne sera pas modifiée.'))return;
+    state.movements=state.movements.filter(m=>m.type!=='other-result');
+    persist();render();
+    $('clearOtherResultsNotice').textContent='Historique des autres stratégies vidé. La bankroll est inchangée.';
+  });
   $('otherResultAmount').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addOtherResult();}});
   $('depositBtn').addEventListener('click',()=>movement('deposit'));
   $('withdrawBtn').addEventListener('click',()=>movement('withdraw'));
