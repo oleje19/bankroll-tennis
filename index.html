@@ -86,7 +86,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 <body>
 <div id="app">
 <main>
-<header><div class="logo">🎾</div><div><h1>Bankroll Tennis</h1><div class="subtitle">Une bankroll réelle · 2 stratégies suivies + résultats complémentaires</div></div></header>
+<header><div class="logo">🎾</div><div><h1>Bankroll Tennis</h1><div class="subtitle">Une bankroll réelle · suivi simple de tes paris</div></div></header>
 
 <section class="card balance">
   <div class="balance-row"><div><div class="eyebrow">Bankroll disponible</div><div class="big" id="balance">500,00 €</div><div class="small">Après déduction des mises en attente</div></div><div class="pill" id="netPill">Résultat paris : 0 €</div></div>
@@ -102,26 +102,22 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 
 <section class="card">
   <h2>Enregistrer un pari</h2>
-  <div class="field"><label for="strategy">Stratégie utilisée</label><select id="strategy"><option value="">Choisir une stratégie…</option><option value="s10">Stratégie 10 %</option><option value="s5">Stratégie 5 %</option></select></div>
-  <div class="field"><label for="stake">Mise (€) · préremplie selon la stratégie, modifiable pour ce pari</label><input id="stake" type="text" inputmode="decimal" autocomplete="off" placeholder="Choisis d'abord une stratégie" /></div>
-  <div class="field"><label for="odds">Cote décimale</label><input id="odds" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 2,20" /></div>
-  <div class="actions"><button class="secondary voice" id="voiceBtn" type="button">🎙️ Dicter le pari</button><button class="secondary" id="manualBtn" type="button">⌨️ Saisie manuelle</button></div>
-  <div class="small" id="voiceHelp">Dictée : dis par exemple « mise 20 euros, cote 2 virgule 20 ». Vérifie les montants avant validation.</div>
+  <div class="field"><label for="stake">Mise (€)</label><input id="stake" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 25" /></div>
+  <button class="secondary voice" id="voiceStakeBtn" type="button" style="width:100%;margin:-3px 0 13px">🎙️ Dicter la mise</button>
+  <div class="field"><label for="odds">Cote décimale</label><input id="odds" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 2,15" /></div>
+  <button class="secondary voice" id="voiceOddsBtn" type="button" style="width:100%;margin:-3px 0 10px">🎙️ Dicter la cote</button>
+  <div class="small" id="voiceHelp">Dicte uniquement le nombre : « 25 » pour la mise, puis « 2 virgule 15 » pour la cote. Tu peux aussi saisir les valeurs au clavier.</div>
   <div class="metrics" style="margin-top:14px">
     <div class="metric"><span class="small">Bénéfice net potentiel</span><strong class="green" id="profit">—</strong></div>
     <div class="metric"><span class="small">Retour total si gagné</span><strong id="return">—</strong></div>
     <div class="metric"><span class="small">Bankroll après réservation de la mise</span><strong id="after">—</strong></div>
     <div class="metric"><span class="small">Bankroll si ce pari est gagné</span><strong class="green" id="ifWon">—</strong></div>
   </div>
-  <button class="primary" id="addBtn" style="margin-top:13px" type="button">＋ Enregistrer la mise</button>
+  <button class="primary" id="addBtn" style="margin-top:13px" type="button">＋ Enregistrer le pari</button>
   <div class="notice" id="notice" role="status" aria-live="polite"></div>
 </section>
 
-<section class="card">
-  <div class="history-head"><h2>Performance des stratégies</h2><span class="count" id="strategyCount">2 stratégies</span></div>
-  <div class="strategy-list" id="strategyStats"></div>
-  <div class="small" style="margin-top:10px">ROI = bénéfice/perte net(te) ÷ total des mises réglées. Les paris en attente et annulés sont exclus du ROI et du taux de réussite.</div>
-</section>
+
 
 <section class="card">
   <h2>Clôturer la journée</h2>
@@ -143,13 +139,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   </details>
 </section>
 
-<section class="card">
-  <h2>Paramétrer les mises des stratégies</h2>
-  <div class="small">Ces montants sont fixes et ne changent pas automatiquement avec la bankroll. Modifie-les quand tu le souhaites. Tu peux aussi modifier la mise d'un pari isolé au moment de sa saisie.</div>
-  <div id="stakeSettings"></div>
-  <button class="primary" id="saveStakes" type="button">Enregistrer les mises des stratégies</button>
-  <div class="notice" id="stakeNotice" role="status" aria-live="polite"></div>
-</section>
+
 
 <section class="card">
   <h2>Apport ou retrait de bankroll</h2>
@@ -163,7 +153,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 
 <section class="card">
   <h2>Résultat des autres stratégies</h2>
-  <div class="small">Saisis uniquement le gain ou la perte net(te) réalisé(e) avec tes autres stratégies. Utilise un signe + pour un gain et − pour une perte. Le montant modifie directement la bankroll générale, sans toucher aux statistiques des stratégies 5 % et 10 %.</div>
+  <div class="small">Saisis uniquement le gain ou la perte net(te) réalisé(e) avec tes autres stratégies. Utilise un signe + pour un gain et − pour une perte. Le montant modifie directement la bankroll générale, sans être mélangé aux paris enregistrés ci-dessus.</div>
   <div class="field" style="margin-top:13px"><label for="otherResultAmount">Gain ou perte (€)</label><input id="otherResultAmount" type="text" inputmode="decimal" placeholder="Ex. +25 ou -12,50" /></div>
   <div class="field"><label for="otherResultNote">Note (facultative)</label><input id="otherResultNote" type="text" placeholder="Ex. autres stratégies du jour" style="font-size:15px;font-weight:500" /></div>
   <button class="primary" id="addOtherResult" type="button">Enregistrer ce résultat</button>
@@ -236,8 +226,8 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('observationsNotice').textContent='Observations enregistrées automatiquement.';
   });
   const notice = text => { $('notice').textContent = text; };
-  const strategyName = id => STRATEGIES.find(s=>s.id===id)?.name || (id==='legacy'?'Ancien pari · non classé':'Stratégie inconnue');
-  const values = () => ({strategy:$('strategy').value,stake:parse($('stake').value),odds:parse($('odds').value)});
+  const strategyName = id => id==='manual'?'Pari libre':(STRATEGIES.find(s=>s.id===id)?.name || (id==='legacy'?'Ancien pari · non classé':'Ancien pari'));
+  const values = () => ({stake:parse($('stake').value),odds:parse($('odds').value)});
   const pendingBets = () => state.bets.filter(b=>b.status==='pending');
   const betProfit = bet => bet.status==='won' ? bet.stake*(bet.odds-1) : bet.status==='lost' ? -bet.stake : 0;
   const statsFor = id => {
@@ -262,7 +252,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('after').textContent = valid ? money(state.balance-stake) : '—';
     $('ifWon').textContent = valid ? money(state.balance+stake*(odds-1)) : '—';
     $('after').style.color = valid && stake>state.balance ? 'var(--red)' : 'var(--text)';
-    $('addBtn').disabled = !valid || stake>state.balance || !$('strategy').value;
+    $('addBtn').disabled = !valid || stake>state.balance;
   }
   function renderStrategyStats() {
     const host=$('strategyStats');host.innerHTML='';
@@ -422,17 +412,16 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('netPill').style.color=betNet>=0?'var(--green)':'var(--red)';
     $('netPill').style.background=betNet>=0?'var(--green-bg)':'color-mix(in srgb,var(--red) 12%,var(--panel))';
     $('startingDisplay').textContent=money(state.starting);
-    renderHistory();renderArchive();renderStrategyStats();renderMovements();renderOtherResultHistory();renderCalc();
+    renderHistory();renderArchive();renderMovements();renderOtherResultHistory();renderCalc();
     $('lastResetLabel').textContent=state.lastResetAt?'Dernier reset : '+new Date(state.lastResetAt).toLocaleString('fr-FR'):'Aucun reset effectué pour le moment.';
   }
   function addBet() {
-    const {strategy,stake,odds}=values();
-    if(!strategy) return notice('Choisis la stratégie utilisée pour ce pari.');
+    const {stake,odds}=values();
     if(!(stake>0&&odds>1)) return notice('Entre une mise positive et une cote supérieure à 1.');
     if(stake>state.balance) return notice('Ta mise dépasse la bankroll disponible.');
     state.balance=Number((state.balance-stake).toFixed(2));
-    state.bets.push({id:makeId(),strategy,stake,odds,status:'pending',created:Date.now()});
-    persist();render();$('stake').value='';$('odds').value='';$('strategy').value='';$('stake').placeholder='Choisis d’abord une stratégie';$('stake').focus();notice('Pari enregistré et affecté à '+strategyName(strategy)+'. La mise est réservée.');
+    state.bets.push({id:makeId(),strategy:'manual',stake,odds,status:'pending',created:Date.now()});
+    persist();render();$('stake').value='';$('odds').value='';$('stake').focus();notice('Pari enregistré. La mise est réservée dans la bankroll.');
   }
   function settle(id,result) {
     const bet=state.bets.find(b=>b.id===id);if(!bet||bet.status!=='pending')return;
@@ -461,21 +450,9 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     persist();render();$('movementAmount').value='';$('movementNote').value='';
     notice(type==='deposit'?'Apport enregistré. Il est séparé des résultats des paris.':'Retrait enregistré. Il est séparé des résultats des paris.');
   }
-  $('strategy').addEventListener('change',()=>{
-    const id=$('strategy').value;
-    if(id){$('stake').value=fmt(state.stakes[id]);$('stake').placeholder='Mise de la stratégie';}
-    else {$('stake').value='';$('stake').placeholder='Choisis d’abord une stratégie';}
-    renderCalc();
-  });
   $('stake').addEventListener('input',renderCalc);$('odds').addEventListener('input',renderCalc);
   $('addBtn').addEventListener('click',addBet);
-  $('manualBtn').addEventListener('click',()=>{$('stake').focus();notice('Saisie manuelle activée : renseigne la mise et la cote.');});
   ['stake','odds'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(id==='stake')$('odds').focus();else addBet();}}));
-  $('saveStakes').addEventListener('click',()=>{
-    const next={};
-    for(const s of STRATEGIES){const n=parse($('config-'+s.id).value);if(!(n>0))return $('stakeNotice').textContent='Chaque mise de stratégie doit être supérieure à zéro.';next[s.id]=Number(n.toFixed(2));}
-    state.stakes=next;persist();render();$('stakeNotice').textContent='Les deux mises de référence ont été enregistrées.';
-  });
   $('addOtherResult').addEventListener('click',addOtherResult);
   $('clearOtherResults').addEventListener('click',()=>{
     const count=state.movements.filter(m=>m.type==='other-result').length;
@@ -550,32 +527,32 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       if(!validBets)throw new Error('bets');
       if(!confirm('Restaurer cette sauvegarde remplacera les données actuellement enregistrées sur cet appareil. Continuer ?'))return;
       state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets.map(b=>({...b,strategy:(!b.strategy||b.strategy==='s1'||b.strategy==='s2')?'legacy':b.strategy})),movements:Array.isArray(incoming.movements)?incoming.movements:[],stakes:{...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((incoming.starting*parseFloat(s.rate)/100).toFixed(2))])),...(incoming.stakes||{})}};
-      persist();render();renderStakeSettings();notice('Sauvegarde restaurée avec succès.');
+      persist();render();notice('Sauvegarde restaurée avec succès.');
     }catch(_){notice('Fichier invalide ou incompatible. Choisis une sauvegarde Bankroll Tennis.');}
     finally{e.target.value='';}
   });
-  let recognition=null;
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  const frenchNumber=text=>{
-    const clean=text.toLowerCase().replace(/[€]/g,' euros ').replace(/\bvirgule\b/g,'.').replace(/\b(une|un)\b/g,'1').replace(/\bdeux\b/g,'2').replace(/\btrois\b/g,'3').replace(/\bquatre\b/g,'4').replace(/\bcinq\b/g,'5').replace(/\bsix\b/g,'6').replace(/\bsept\b/g,'7').replace(/\bhuit\b/g,'8').replace(/\bneuf\b/g,'9').replace(/\bdix\b/g,'10').replace(/\bonze\b/g,'11').replace(/\bdouze\b/g,'12').replace(/\btreize\b/g,'13').replace(/\bquatorze\b/g,'14').replace(/\bquinze\b/g,'15').replace(/\bseize\b/g,'16').replace(/\bvingt\b/g,'20').replace(/\btrente\b/g,'30').replace(/\bquarante\b/g,'40').replace(/\bcinquante\b/g,'50').replace(/\bsoixante\b/g,'60').replace(/\bcent\b/g,'100').replace(/(\d)\s*\.\s*(\d)/g,'$1.$2');
-    return clean.match(/\d+(?:[.,]\d+)?/g)||[];
-  };
-  $('voiceBtn').addEventListener('click',()=>{
-    if(!SpeechRecognition){notice('Dictée directe non disponible ici. Utilise le micro du clavier dans les champs Mise et Cote.');$('stake').focus();return;}
-    if(recognition){recognition.stop();return;}
-    recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.continuous=false;
-    $('voiceBtn').classList.add('active');$('voiceBtn').textContent='🔴 Écoute en cours…';notice('Dis par exemple : « mise 20 euros, cote 2 virgule 20 ».');
+  function startDictation(target) {
+    const button=$(target==='stake'?'voiceStakeBtn':'voiceOddsBtn');
+    if(!SpeechRecognition){notice('Dictée directe indisponible dans ce navigateur. Tu peux utiliser le micro du clavier ou saisir le nombre.');$(target).focus();return;}
+    if(button.dataset.listening==='true')return;
+    const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.continuous=false;recognition.maxAlternatives=3;
+    button.dataset.listening='true';button.classList.add('active');button.textContent='🔴 Écoute…';
+    notice(target==='stake'?'Dis uniquement le montant, par exemple « 25 ».':'Dis uniquement la cote, par exemple « 2 virgule 15 ».');
     recognition.onresult=e=>{
-      const transcript=e.results[0][0].transcript.toLowerCase();const nums=frenchNumber(transcript);
-      if(nums.length>=2){$('stake').value=nums[0].replace('.',',');$('odds').value=nums[1].replace(',','.');notice('Dictée reconnue : « '+transcript+' ». Vérifie la stratégie, la mise et la cote avant validation.');}
-      else notice('Je n’ai pas reconnu la mise et la cote. Réessaie ou utilise la saisie manuelle. Texte entendu : '+transcript);
-      renderCalc();
+      const transcript=e.results[0][0].transcript.toLowerCase().trim();
+      const normalized=transcript.replace(/\bvirgule\b/g,'.').replace(/\b(point|points)\b/g,'.').replace(/,/g,'.');
+      const digits=normalized.match(/\d+(?:\.\d+)?/);
+      if(digits){$(target).value=digits[0].replace('.',',');renderCalc();notice((target==='stake'?'Mise':'Cote')+' reconnue : '+digits[0].replace('.',',')+'. Vérifie la valeur avant d’enregistrer.');}
+      else notice('Je n’ai pas reconnu le nombre entendu (« '+transcript+' »). Réessaie en disant les chiffres, ou saisis-le au clavier.');
     };
-    recognition.onerror=()=>notice('Dictée interrompue. Tu peux utiliser le micro de ton clavier.');
-    recognition.onend=()=>{recognition=null;$('voiceBtn').classList.remove('active');$('voiceBtn').textContent='🎙️ Dicter le pari';};
-    recognition.start();
-  });
-  render();renderStakeSettings();
+    recognition.onerror=e=>notice(e.error==='not-allowed'?'Autorise l’accès au microphone dans ton navigateur, puis réessaie.':'Dictée interrompue. Réessaie ou utilise le clavier.');
+    recognition.onend=()=>{button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':'🎙️ Dicter la cote';};
+    try{recognition.start();}catch(_){button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':'🎙️ Dicter la cote';notice('Impossible de démarrer le microphone. Vérifie son autorisation.');}
+  }
+  $('voiceStakeBtn').addEventListener('click',()=>startDictation('stake'));
+  $('voiceOddsBtn').addEventListener('click',()=>startDictation('odds'));
+  render();
 })();
 </script>
 </body>
