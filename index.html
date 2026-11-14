@@ -217,7 +217,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       state = {...state,...saved};
       state.movements = Array.isArray(saved.movements) ? saved.movements : [];
       state.stakes = saved.stakes || {};
-      state.bets = state.bets.map(b=>({...b,strategy:(!b.strategy || b.strategy==='s1' || b.strategy==='s2' || b.strategy==='manual')?'legacy':String(b.strategy).toUpperCase()}));
+      state.bets = state.bets.map(b=>({...b,strategy:(!b.strategy || b.strategy==='s1' || b.strategy==='s2' || b.strategy==='s10' || b.strategy==='s5' || b.strategy==='manual')?'legacy':String(b.strategy).toUpperCase()}));
     }
   } catch (_) {}
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { notice('Le navigateur ne permet pas de sauvegarder les données ici.'); } };
@@ -531,7 +531,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       const validBets=incoming.bets.every(b=>b&&typeof b.id==='string'&&Number.isFinite(b.stake)&&b.stake>0&&Number.isFinite(b.odds)&&b.odds>1&&['pending','won','lost','void'].includes(b.status)&&Number.isFinite(b.created));
       if(!validBets)throw new Error('bets');
       if(!confirm('Restaurer cette sauvegarde remplacera les données actuellement enregistrées sur cet appareil. Continuer ?'))return;
-      state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets.map(b=>({...b,strategy:(!b.strategy||b.strategy==='s1'||b.strategy==='s2')?'legacy':b.strategy})),movements:Array.isArray(incoming.movements)?incoming.movements:[],stakes:{...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((incoming.starting*parseFloat(s.rate)/100).toFixed(2))])),...(incoming.stakes||{})}};
+      state={starting:incoming.starting,balance:incoming.balance,bets:incoming.bets.map(b=>({...b,strategy:(!b.strategy||b.strategy==='s1'||b.strategy==='s2'||b.strategy==='s10'||b.strategy==='s5'||b.strategy==='manual')?'legacy':b.strategy})),movements:Array.isArray(incoming.movements)?incoming.movements:[],stakes:{...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((incoming.starting*parseFloat(s.rate)/100).toFixed(2))])),...(incoming.stakes||{})}};
       persist();render();notice('Sauvegarde restaurée avec succès.');
     }catch(_){notice('Fichier invalide ou incompatible. Choisis une sauvegarde Bankroll Tennis.');}
     finally{e.target.value='';}
