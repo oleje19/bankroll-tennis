@@ -107,6 +107,9 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   <div class="field"><label for="odds">Cote décimale</label><input id="odds" type="text" inputmode="decimal" autocomplete="off" placeholder="Ex. 2,15" /></div>
   <button class="secondary voice" id="voiceOddsBtn" type="button" style="width:100%;margin:-3px 0 10px">🎙️ Dicter la cote</button>
   <div class="small" id="voiceHelp">Dicte uniquement le nombre : « 25 » pour la mise, puis « 2 virgule 15 » pour la cote. Tu peux aussi saisir les valeurs au clavier.</div>
+  <div class="field" style="margin-top:14px"><label for="strategy">Stratégie</label><input id="strategy" type="text" list="strategyOptions" autocomplete="off" placeholder="Ex. 75, DEJA, 60…" /><datalist id="strategyOptions"><option value="75"><option value="DEJA"><option value="60"><option value="53"><option value="40"><option value="AUTRES"></datalist></div>
+  <button class="secondary voice" id="voiceStrategyBtn" type="button" style="width:100%;margin:-3px 0 10px">🎙️ Dicter la stratégie</button>
+  <div class="small">Choisis ou écris une stratégie parmi : 75 · DEJA · 60 · 53 · 40 · AUTRES.</div>
   <div class="metrics" style="margin-top:14px">
     <div class="metric"><span class="small">Bénéfice net potentiel</span><strong class="green" id="profit">—</strong></div>
     <div class="metric"><span class="small">Retour total si gagné</span><strong id="return">—</strong></div>
@@ -138,9 +141,11 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     <div id="archiveHistory" style="margin-top:10px"><div class="empty">Aucun pari archivé.</div></div>
   </details>
 </section>
-
-
-
+<section class="card">
+  <h2>Résultats par stratégie · depuis le début</h2>
+  <div class="small" style="margin-bottom:12px">Statistiques cumulées sur tout l'historique. Le RESET de la journée ne remet pas ces résultats à zéro.</div>
+  <div id="strategyStats" class="strategy-list"><div class="empty">Les résultats apparaîtront après tes premiers paris classés.</div></div>
+</section>
 <section class="card">
   <h2>Apport ou retrait de bankroll</h2>
   <div class="field"><label for="movementAmount">Montant (€)</label><input id="movementAmount" type="text" inputmode="decimal" placeholder="Ex. 100" /></div>
@@ -197,10 +202,7 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
 (() => {
   const $ = id => document.getElementById(id);
   const KEY = 'bankroll-tennis-v1';
-  const STRATEGIES = [
-    {id:'s10',name:'Stratégie 10 %',rate:'10 %'},
-    {id:'s5',name:'Stratégie 5 %',rate:'5 %'}
-  ];
+  const STRATEGIES = ['75','DEJA','60','53','40','AUTRES'];
   const parse = value => {
     const n = Number(String(value ?? '').trim().replace(/\s/g,'').replace(',', '.').replace(/[€]/g,''));
     return Number.isFinite(n) ? n : NaN;
@@ -214,8 +216,8 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     if (saved && Number.isFinite(saved.starting) && Number.isFinite(saved.balance) && Array.isArray(saved.bets)) {
       state = {...state,...saved};
       state.movements = Array.isArray(saved.movements) ? saved.movements : [];
-      state.stakes = {...Object.fromEntries(STRATEGIES.map(s=>[s.id,Number((state.starting * parseFloat(s.rate)/100).toFixed(2))])),...(saved.stakes || {})};
-      state.bets = state.bets.map(b=>({...b,strategy:(!b.strategy || b.strategy==='s1' || b.strategy==='s2')?'legacy':b.strategy}));
+      state.stakes = saved.stakes || {};
+      state.bets = state.bets.map(b=>({...b,strategy:(!b.strategy || b.strategy==='s1' || b.strategy==='s2' || b.strategy==='manual')?'legacy':String(b.strategy).toUpperCase()}));
     }
   } catch (_) {}
   const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) { notice('Le navigateur ne permet pas de sauvegarder les données ici.'); } };
@@ -226,12 +228,12 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('observationsNotice').textContent='Observations enregistrées automatiquement.';
   });
   const notice = text => { $('notice').textContent = text; };
-  const strategyName = id => id==='manual'?'Pari libre':(STRATEGIES.find(s=>s.id===id)?.name || (id==='legacy'?'Ancien pari · non classé':'Ancien pari'));
+  const strategyName = id => STRATEGIES.includes(String(id).toUpperCase())?String(id).toUpperCase():'Ancien pari · non classé';
   const values = () => ({stake:parse($('stake').value),odds:parse($('odds').value)});
   const pendingBets = () => state.bets.filter(b=>b.status==='pending');
   const betProfit = bet => bet.status==='won' ? bet.stake*(bet.odds-1) : bet.status==='lost' ? -bet.stake : 0;
   const statsFor = id => {
-    const bets = state.bets.filter(b=>b.strategy===id&&!b.archivedAt);
+    const bets = state.bets.filter(b=>String(b.strategy).toUpperCase()===id);
     const won = bets.filter(b=>b.status==='won').length;
     const lost = bets.filter(b=>b.status==='lost').length;
     const pending = bets.filter(b=>b.status==='pending').length;
@@ -257,12 +259,11 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   function renderStrategyStats() {
     const host=$('strategyStats');host.innerHTML='';
     STRATEGIES.forEach(s=>{
-      const x=statsFor(s.id);
+      const x=statsFor(s);
       const card=document.createElement('div');card.className='strategy-card';
       const head=document.createElement('div');head.className='strategy-head';
-      const name=document.createElement('div');name.className='strategy-name';name.textContent=s.name;
-      const rate=document.createElement('div');rate.className='strategy-rate';rate.textContent='Mise actuelle : '+money(state.stakes[s.id]);
-      head.append(name,rate);
+      const name=document.createElement('div');name.className='strategy-name';name.textContent=s;
+      head.append(name);
       const grid=document.createElement('div');grid.className='stats-grid';
       const items=[
         ['Paris',String(x.bets)+' · '+x.pending+' en attente'],
@@ -275,11 +276,13 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
       items.forEach(([label,value])=>{const box=document.createElement('div');box.className='stat-box';const l=document.createElement('div');l.className='stat-label';l.textContent=label;const v=document.createElement('div');v.className='stat-value';v.textContent=value;if(label==='Bénéfice net'||label==='ROI')v.style.color=x.profit>=0?'var(--green)':'var(--red)';box.append(l,v);grid.append(box);});
       card.append(head,grid);host.append(card);
     });
-    const legacy=statsFor('legacy');
-    if(legacy.bets){
+    const unclassified=state.bets.filter(b=>!STRATEGIES.includes(String(b.strategy).toUpperCase()));
+    if(unclassified.length){
+      const settled=unclassified.filter(b=>b.status==='won'||b.status==='lost');
+      const profit=settled.reduce((n,b)=>n+betProfit(b),0);
       const card=document.createElement('div');card.className='strategy-card';
       const title=document.createElement('div');title.className='strategy-name';title.textContent='Anciens paris non classés';
-      const sub=document.createElement('div');sub.className='small';sub.style.marginTop='6px';sub.textContent=legacy.bets+' pari(s) conservé(s) depuis l’ancienne version · bénéfice net '+money(legacy.profit);
+      const sub=document.createElement('div');sub.className='small';sub.style.marginTop='6px';sub.textContent=unclassified.length+' pari(s) conservé(s) sans stratégie attribuée · bénéfice net '+money(profit);
       card.append(title,sub);host.append(card);
     }
   }
@@ -412,16 +415,18 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
     $('netPill').style.color=betNet>=0?'var(--green)':'var(--red)';
     $('netPill').style.background=betNet>=0?'var(--green-bg)':'color-mix(in srgb,var(--red) 12%,var(--panel))';
     $('startingDisplay').textContent=money(state.starting);
-    renderHistory();renderArchive();renderMovements();renderOtherResultHistory();renderCalc();
+    renderHistory();renderArchive();renderMovements();renderOtherResultHistory();renderStrategyStats();renderCalc();
     $('lastResetLabel').textContent=state.lastResetAt?'Dernier reset : '+new Date(state.lastResetAt).toLocaleString('fr-FR'):'Aucun reset effectué pour le moment.';
   }
   function addBet() {
     const {stake,odds}=values();
+    const strategy=String($('strategy').value||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     if(!(stake>0&&odds>1)) return notice('Entre une mise positive et une cote supérieure à 1.');
+    if(!STRATEGIES.includes(strategy)) return notice('Choisis une stratégie valide : 75, DEJA, 60, 53, 40 ou AUTRES.');
     if(stake>state.balance) return notice('Ta mise dépasse la bankroll disponible.');
     state.balance=Number((state.balance-stake).toFixed(2));
-    state.bets.push({id:makeId(),strategy:'manual',stake,odds,status:'pending',created:Date.now()});
-    persist();render();$('stake').value='';$('odds').value='';$('stake').focus();notice('Pari enregistré. La mise est réservée dans la bankroll.');
+    state.bets.push({id:makeId(),strategy,stake,odds,status:'pending',created:Date.now()});
+    persist();render();$('stake').value='';$('odds').value='';$('strategy').value='';$('stake').focus();notice('Pari enregistré avec la stratégie '+strategy+'. La mise est réservée dans la bankroll.');
   }
   function settle(id,result) {
     const bet=state.bets.find(b=>b.id===id);if(!bet||bet.status!=='pending')return;
@@ -533,25 +538,34 @@ select{width:100%;border:1px solid var(--border);border-radius:13px;padding:14px
   });
   const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   function startDictation(target) {
-    const button=$(target==='stake'?'voiceStakeBtn':'voiceOddsBtn');
+    const button=$(target==='stake'?'voiceStakeBtn':target==='odds'?'voiceOddsBtn':'voiceStrategyBtn');
     if(!SpeechRecognition){notice('Dictée directe indisponible dans ce navigateur. Tu peux utiliser le micro du clavier ou saisir le nombre.');$(target).focus();return;}
     if(button.dataset.listening==='true')return;
     const recognition=new SpeechRecognition();recognition.lang='fr-FR';recognition.interimResults=false;recognition.continuous=false;recognition.maxAlternatives=3;
     button.dataset.listening='true';button.classList.add('active');button.textContent='🔴 Écoute…';
-    notice(target==='stake'?'Dis uniquement le montant, par exemple « 25 ».':'Dis uniquement la cote, par exemple « 2 virgule 15 ».');
+    notice(target==='stake'?'Dis uniquement le montant, par exemple « 25 ».':target==='odds'?'Dis uniquement la cote, par exemple « 2 virgule 15 ».':'Dis la stratégie : 75, DEJA, 60, 53, 40 ou AUTRES.');
     recognition.onresult=e=>{
-      const transcript=e.results[0][0].transcript.toLowerCase().trim();
-      const normalized=transcript.replace(/\bvirgule\b/g,'.').replace(/\b(point|points)\b/g,'.').replace(/,/g,'.');
+      const transcript=e.results[0][0].transcript.trim();
+      if(target==='strategy'){
+        const spoken=transcript.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]/g,'');
+        const aliases={'SOIXANTEQUINZE':'75','SOIXANTE':'60','CINQUANTETROIS':'53','QUARANTE':'40','DEJA':'DEJA','AUTRE':'AUTRES','AUTRES':'AUTRES'};
+        const match=STRATEGIES.includes(spoken)?spoken:(aliases[spoken]||null);
+        if(match){$('strategy').value=match;notice('Stratégie reconnue : '+match+'. Vérifie avant d’enregistrer.');}
+        else notice('Stratégie non reconnue (« '+transcript+' »). Dicte 75, DEJA, 60, 53, 40 ou AUTRES.');
+        return;
+      }
+      const normalized=transcript.toLowerCase().replace(/\bvirgule\b/g,'.').replace(/\b(point|points)\b/g,'.').replace(/,/g,'.');
       const digits=normalized.match(/\d+(?:\.\d+)?/);
       if(digits){$(target).value=digits[0].replace('.',',');renderCalc();notice((target==='stake'?'Mise':'Cote')+' reconnue : '+digits[0].replace('.',',')+'. Vérifie la valeur avant d’enregistrer.');}
       else notice('Je n’ai pas reconnu le nombre entendu (« '+transcript+' »). Réessaie en disant les chiffres, ou saisis-le au clavier.');
     };
     recognition.onerror=e=>notice(e.error==='not-allowed'?'Autorise l’accès au microphone dans ton navigateur, puis réessaie.':'Dictée interrompue. Réessaie ou utilise le clavier.');
-    recognition.onend=()=>{button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':'🎙️ Dicter la cote';};
-    try{recognition.start();}catch(_){button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':'🎙️ Dicter la cote';notice('Impossible de démarrer le microphone. Vérifie son autorisation.');}
+    recognition.onend=()=>{button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':target==='odds'?'🎙️ Dicter la cote':'🎙️ Dicter la stratégie';};
+    try{recognition.start();}catch(_){button.dataset.listening='false';button.classList.remove('active');button.textContent=target==='stake'?'🎙️ Dicter la mise':target==='odds'?'🎙️ Dicter la cote':'🎙️ Dicter la stratégie';notice('Impossible de démarrer le microphone. Vérifie son autorisation.');}
   }
   $('voiceStakeBtn').addEventListener('click',()=>startDictation('stake'));
   $('voiceOddsBtn').addEventListener('click',()=>startDictation('odds'));
+  $('voiceStrategyBtn').addEventListener('click',()=>startDictation('strategy'));
   render();
 })();
 </script>
